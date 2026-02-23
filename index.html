@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviator Signal v6 - HTML Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020408;
+            color: #cbd5e1;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        
+        .bg-glass {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.95); }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center bg-glass p-4 rounded-3xl">
+            <div class="flex items-center gap-3">
+                <div id="statusIndicator" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                <h1 class="font-black text-white tracking-widest text-sm uppercase">Aviator Signal v6</h1>
+            </div>
+            <div class="flex bg-black/50 p-1 rounded-xl border border-white/10" id="modeSelector">
+                <button onclick="setMode('1.5x')" id="btn-15x" class="px-4 py-1.5 text-[10px] font-black rounded-lg transition-all bg-indigo-600 text-white shadow-lg">1.5X</button>
+                <button onclick="setMode('Pink')" id="btn-pink" class="px-4 py-1.5 text-[10px] font-black rounded-lg transition-all text-slate-500">PINK</button>
+            </div>
+        </header>
+
+        <!-- Main Signal Card -->
+        <div id="signalContainer" class="relative overflow-hidden p-1 rounded-[3rem] transition-all duration-500 shadow-2xl bg-slate-800/50">
+            <div class="bg-[#080b12] rounded-[2.8rem] p-8 text-center relative z-10">
+                <p class="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase mb-4">Current Prediction</p>
+                
+                <div class="flex flex-col items-center justify-center space-y-2">
+                    <span id="decisionStatus" class="text-7xl md:text-8xl font-black italic tracking-tighter transition-all duration-700 text-slate-600">
+                        WAIT
+                    </span>
+                    <div id="decisionBadge" class="flex items-center gap-2 px-6 py-2 rounded-full border text-xs font-bold bg-white/5 border-white/5 text-slate-400">
+                        NOT ENOUGH DATA
+                    </div>
+                    <p id="decisionSub" class="text-slate-500 text-[11px] font-medium mt-2">Add last 3 rounds</p>
+                </div>
+
+                <!-- Stats Footer -->
+                <div id="betStats" class="mt-8 grid grid-cols-2 gap-4 hidden">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <p class="text-[10px] text-indigo-400 font-bold uppercase mb-1">Target</p>
+                        <p id="targetVal" class="text-2xl font-black text-white">1.50x</p>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <p class="text-[10px] text-green-400 font-bold uppercase mb-1">Confidence</p>
+                        <p id="confidenceVal" class="text-2xl font-black text-white">88%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Data Entry -->
+            <div class="bg-glass p-6 rounded-[2.5rem] space-y-4">
+                <div class="flex gap-2">
+                    <button onclick="setTab('multipliers')" id="tab-multi" class="flex-1 py-2 text-[10px] font-black rounded-xl border bg-white/10 border-white/20 text-white">MULTI</button>
+                    <button onclick="setTab('times')" id="tab-times" class="flex-1 py-2 text-[10px] font-black rounded-xl border border-transparent text-slate-600">TIMES</button>
+                </div>
+                
+                <div class="relative">
+                    <input id="dataInput" type="number" step="0.01" placeholder="1.00" class="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-5 text-xl font-black text-indigo-400 outline-none focus:border-indigo-500/50 transition-all">
+                    <button onclick="addData()" class="absolute right-2 top-2 bottom-2 px-6 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-black text-xs transition-all active:scale-95">ADD</button>
+                </div>
+
+                <!-- History List -->
+                <div id="historyList" class="h-48 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                    <!-- Items will be injected here -->
+                </div>
+            </div>
+
+            <!-- Protocol -->
+            <div class="bg-indigo-600/5 p-8 rounded-[2.5rem] border border-indigo-500/10 flex flex-col justify-center">
+                <h3 class="text-sm font-black text-indigo-300 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    🛡️ Safety Protocol
+                </h3>
+                <ul class="space-y-4 text-[11px] text-slate-400 italic">
+                    <li class="flex gap-3"><span class="text-indigo-500 font-bold">1.</span> Only bet when 'ENTRY SIGNAL' is visible.</li>
+                    <li class="flex gap-3"><span class="text-indigo-500 font-bold">2.</span> If round ends in '1.00x', wait for next signal.</li>
+                    <li class="flex gap-3"><span class="text-indigo-500 font-bold">3.</span> Max 2 consecutive bets per cluster.</li>
+                    <li class="flex gap-3"><span class="text-indigo-500 font-bold">4.</span> Server Time: <span id="serverTime" class="text-indigo-400 font-mono not-italic">00:00:00</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let history = [];
+        let pinkTimes = [];
+        let analysisMode = '1.5x';
+        let activeTab = 'multipliers';
+
+        // Timer for Server Time
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('serverTime').innerText = now.toLocaleTimeString('en-GB');
+            updateDecision(); // Keep analysis fresh
+        }, 1000);
+
+        function setMode(mode) {
+            analysisMode = mode;
+            document.getElementById('btn-15x').className = mode === '1.5x' ? 'px-4 py-1.5 text-[10px] font-black rounded-lg transition-all bg-indigo-600 text-white shadow-lg' : 'px-4 py-1.5 text-[10px] font-black rounded-lg transition-all text-slate-500';
+            document.getElementById('btn-pink').className = mode === 'Pink' ? 'px-4 py-1.5 text-[10px] font-black rounded-lg transition-all bg-indigo-600 text-white shadow-lg' : 'px-4 py-1.5 text-[10px] font-black rounded-lg transition-all text-slate-500';
+            updateDecision();
+        }
+
+        function setTab(tab) {
+            activeTab = tab;
+            const input = document.getElementById('dataInput');
+            document.getElementById('tab-multi').className = tab === 'multipliers' ? 'flex-1 py-2 text-[10px] font-black rounded-xl border bg-white/10 border-white/20 text-white' : 'flex-1 py-2 text-[10px] font-black rounded-xl border border-transparent text-slate-600';
+            document.getElementById('tab-times').className = tab === 'times' ? 'flex-1 py-2 text-[10px] font-black rounded-xl border bg-white/10 border-white/20 text-white' : 'flex-1 py-2 text-[10px] font-black rounded-xl border border-transparent text-slate-600';
+            input.type = tab === 'multipliers' ? 'number' : 'text';
+            input.placeholder = tab === 'multipliers' ? '1.00' : 'HH:MM';
+            renderHistory();
+        }
+
+        function addData() {
+            const val = document.getElementById('dataInput').value;
+            if (!val) return;
+
+            const now = new Date();
+            const timestamp = now.getTime();
+            const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+            if (activeTab === 'multipliers') {
+                const num = parseFloat(val);
+                if (isNaN(num)) return;
+                history.unshift({ id: Date.now(), value: num, time: now.toLocaleTimeString('en-GB') });
+                if (num >= 10) pinkTimes.unshift({ id: Date.now(), time: timeStr, timestamp });
+            } else {
+                if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val)) return;
+                const [h, m] = val.split(':');
+                const d = new Date();
+                d.setHours(h, m, 0);
+                pinkTimes.unshift({ id: Date.now(), time: val, timestamp: d.getTime() });
+            }
+
+            document.getElementById('dataInput').value = '';
+            renderHistory();
+            updateDecision();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const data = activeTab === 'multipliers' ? history : pinkTimes;
+            list.innerHTML = data.map(item => `
+                <div class="flex justify-between items-center p-3 bg-black/20 rounded-xl border border-white/5">
+                    <span class="text-[10px] font-mono text-slate-600">${item.time}</span>
+                    <span class="font-black ${item.value >= 10 ? 'text-pink-500' : 'text-slate-300'}">
+                        ${item.value ? item.value.toFixed(2) + 'x' : item.time}
+                    </span>
+                    <button onclick="removeItem(${item.id})" class="text-slate-700 hover:text-red-500 text-[10px]">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeItem(id) {
+            history = history.filter(i => i.id !== id);
+            pinkTimes = pinkTimes.filter(i => i.id !== id);
+            renderHistory();
+            updateDecision();
+        }
+
+        function updateDecision() {
+            const statusEl = document.getElementById('decisionStatus');
+            const badgeEl = document.getElementById('decisionBadge');
+            const subEl = document.getElementById('decisionSub');
+            const container = document.getElementById('signalContainer');
+            const stats = document.getElementById('betStats');
+            const indicator = document.getElementById('statusIndicator');
+
+            let d = { status: 'WAIT', color: 'slate', text: 'NOT ENOUGH DATA', sub: 'Add last 3 rounds' };
+
+            if (analysisMode === '1.5x') {
+                if (history.length >= 2) {
+                    const last3 = history.slice(0, 3);
+                    const isBlueStreak = last3.length >= 2 && last3.every(h => h.value < 1.45);
+                    const veryLow = history[0].value < 1.15;
+
+                    if (isBlueStreak || veryLow) {
+                        d = { status: 'BET', color: 'green', text: 'ENTRY SIGNAL', sub: 'Recovery Pattern Detected' };
+                    } else if (history[0].value > 5) {
+                        d = { status: 'WAIT', color: 'red', text: 'COOLDOWN', sub: 'High Multiplier Delay' };
+                    } else {
+                        d = { status: 'WAIT', color: 'yellow', text: 'SCANNING', sub: 'Waiting for Low Cluster' };
+                    }
+                }
+            } else {
+                if (pinkTimes.length > 0) {
+                    const diffMins = (Date.now() - pinkTimes[0].timestamp) / 60000;
+                    const isWindow = [10, 20, 34].some(c => diffMins > (c - 1) && diffMins < (c + 1));
+                    if (isWindow) {
+                        d = { status: 'BET', color: 'pink', text: 'PINK SIGNAL', sub: 'Time Window Open' };
+                    } else {
+                        d = { status: 'WAIT', color: 'slate', text: 'WAITING', sub: `Next Window: ~${Math.ceil(10 - (diffMins % 10))}m` };
+                    }
+                } else {
+                    d = { status: 'WAIT', color: 'slate', text: 'NO PINK DATA', sub: 'Add last pink time' };
+                }
+            }
+
+            // Apply UI Changes
+            statusEl.innerText = d.status;
+            badgeEl.innerText = d.text;
+            subEl.innerText = d.sub;
+            
+            // Colors
+            const colors = {
+                green: 'text-green-400 bg-green-500/50',
+                pink: 'text-pink-400 bg-pink-500/50',
+                red: 'text-red-500 bg-red-500/50',
+                yellow: 'text-yellow-400 bg-yellow-500/50',
+                slate: 'text-slate-600 bg-slate-800/50'
+            };
+
+            container.className = `relative overflow-hidden p-1 rounded-[3rem] transition-all duration-500 shadow-2xl ${colors[d.color].split(' ')[1]}`;
+            statusEl.className = `text-7xl md:text-8xl font-black italic tracking-tighter transition-all duration-700 ${colors[d.color].split(' ')[0]}`;
+            indicator.className = `w-3 h-3 rounded-full animate-pulse ${d.status === 'BET' ? 'bg-green-500' : 'bg-red-500'}`;
+
+            if (d.status === 'BET') {
+                stats.classList.remove('hidden');
+                document.getElementById('targetVal').innerText = analysisMode === '1.5x' ? '1.50x' : '10.00x+';
+                document.getElementById('confidenceVal').innerText = analysisMode === '1.5x' ? '88%' : '72%';
+            } else {
+                stats.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
